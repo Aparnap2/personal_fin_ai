@@ -1,0 +1,24 @@
+model_list:
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+      temperature: 0.1
+      max_tokens: 50
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+      temperature: 0.0
+      max_tokens: 100
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  api_key: os.environ/LITELLM_API_KEY
+
+litellm_settings:
+  set_verbose: true
+  max_tokens: 1000
+  cache: true
+  cache_type: "redis"  # Optional: set REDIS_URL env var
