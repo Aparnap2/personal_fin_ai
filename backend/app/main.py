@@ -4,6 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from decimal import Decimal
+from typing import AsyncGenerator
 from uuid import UUID
 
 import litellm
@@ -19,6 +20,7 @@ from .categorizer import categorize_batch
 from .client import get_async_supabase_client
 from .forecaster import generate_forecast
 from .parser import CSVParser
+from .mock_supabase import get_mock_client
 
 # Configure logging
 structlog.configure(
@@ -60,8 +62,13 @@ app.add_middleware(
 
 # Dependencies
 async def get_supabase() -> AsyncClient:
-    """Get Supabase client."""
-    return await get_async_supabase_client()
+    """Get Supabase client (or mock for testing)."""
+    import os
+    try:
+        return await get_async_supabase_client()
+    except ValueError:
+        # Return mock client if Supabase not configured
+        return get_mock_client()
 
 
 # Health check
@@ -107,7 +114,7 @@ async def upload_csv(
     return models.CSVUploadResponse(
         filename=file.filename,
         rows_parsed=len(transactions),
-        transactions=[models.TransactionCreate(**t) for t in transactions],
+        transactions=transactions,  # Already TransactionCreate objects
         upload_id=upload_result.data[0]["id"],
     )
 

@@ -14,11 +14,11 @@ from .models import TransactionCreate
 class CSVParser:
     """Flexible CSV parser with column mapping detection."""
 
-    # Common column name patterns
+    # Common column name patterns (case-insensitive, flexible)
     COLUMN_PATTERNS = {
-        "date": r"^(date|txn_date|transaction_date|posted_date|time|datetime|timestamp)$",
-        "description": r"^(description|desc|payee|merchant|narrative|details|particulars|transaction_type|memo)$",
-        "amount": r"^(amount|value|sum|txn_amount|debit|credit|paid|received)$",
+        "date": r"(date|txn.*date|transaction.*date|posted.*date|time|datetime|timestamp)",
+        "description": r"(description|desc|payee|merchant|narrative|details|particulars|transaction.*type|memo)",
+        "amount": r"(amount|value|sum|txn.*amount|debit|credit|paid|received)",
     }
 
     def __init__(self):

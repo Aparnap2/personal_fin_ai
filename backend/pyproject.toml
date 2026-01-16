@@ -7,13 +7,12 @@ dependencies = [
     # Web framework
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
-    "liteserve>=2.9.0",
 
     # AI / ML
     "langgraph>=0.1.0",
     "litellm>=1.35.0",
     "openai>=1.14.0",
-    "prophet[cmdstanpy]>=1.1.5",
+    "prophet>=1.1.5",
     "numpy>=1.26.0",
     "pandas>=2.1.0",
 
@@ -46,8 +45,21 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
     "httpx>=0.26.0",
     "mypy>=1.8.0",
+    "types-requests>=2.31.0",
+]
+
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-playwright>=0.4.0",
+    "httpx>=0.26.0",
+    "locust>=2.24.0",
+    "prophet>=1.1.5",
+    "litellm>=1.35.0",
 ]
 
 [build-system]

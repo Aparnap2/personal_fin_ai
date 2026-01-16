@@ -1,24 +1,38 @@
 model_list:
+  # Primary: Ollama qwen2.5-coder:3b (local, free)
+  - model_name: qwen2.5-coder
+    litellm_params:
+      model: ollama/qwen2.5-coder:3b
+      api_key: "ollama-free"
+      base_url: http://localhost:11434
+      temperature: 0.1
+      max_tokens: 100
+
+  # Fallback: Ollama granite3.1-moe:3b
+  - model_name: granite-moe
+    litellm_params:
+      model: ollama/granite3.1-moe:3b
+      api_key: "ollama-free"
+      base_url: http://localhost:11434
+      temperature: 0.0
+      max_tokens: 100
+
+  # OpenAI fallback (paid)
   - model_name: gpt-4o-mini
     litellm_params:
       model: openai/gpt-4o-mini
       api_key: os.environ/OPENAI_API_KEY
       temperature: 0.1
-      max_tokens: 50
-
-  - model_name: gpt-4o-mini
-    litellm_params:
-      model: openai/gpt-4o-mini
-      api_key: os.environ/OPENAI_API_KEY
-      temperature: 0.0
       max_tokens: 100
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   api_key: os.environ/LITELLM_API_KEY
+  fallbacks: [{"qwen2.5-coder": ["granite-moe", "gpt-4o-mini"]}]
 
 litellm_settings:
   set_verbose: true
   max_tokens: 1000
   cache: true
-  cache_type: "redis"  # Optional: set REDIS_URL env var
+  cache_type: "redis"
+  redis_url: os.environ.get("REDIS_URL", "redis://localhost:6379")

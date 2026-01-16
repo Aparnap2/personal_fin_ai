@@ -1,5 +1,7 @@
 """LLM-based transaction categorization."""
 import json
+import logging
+import os
 import time
 from decimal import Decimal
 from typing import Any
@@ -9,8 +11,9 @@ from pydantic import BaseModel
 
 from .models import Category, TransactionCreate
 
+logger = logging.getLogger(__name__)
 
-# Categorization prompt template
+# Categorization prompt template - optimized for Ollama qwen2.5-coder
 CATEGORIZE_PROMPT = """You are a financial transaction classifier. Classify this transaction into ONE category.
 
 Categories: {categories}
@@ -18,32 +21,39 @@ Categories: {categories}
 Transaction: "{description}"
 Amount: ₹{amount}
 
-Return ONLY a JSON object with this format:
+Output JSON only:
 {{"category": "CategoryName", "confidence": 0.95}}
 
 Rules:
-- Be strict but accurate
-- Use "Other" only if no category fits
-- "Subscriptions" = recurring digital services (Netflix, Spotify, SaaS)
+- "Subscriptions" = Netflix, Spotify, SaaS
 - "Dining" = restaurants, cafes, food delivery
-- "Groceries" = supermarkets, food items for home
+- "Groceries" = supermarkets, food for home
 - "Transport" = rides, fuel, public transit
-- "Utilities" = electricity, water, internet, phone bills
-- "Shopping" = physical goods, clothing, electronics
-- "Entertainment" = movies, games, events, hobbies
+- "Utilities" = electricity, water, internet, phone
+- "Shopping" = goods, clothing, electronics
+- "Entertainment" = movies, games, events
 - "Health" = pharmacy, doctor, fitness
-- "Income" = salary, refunds, cash deposits
-- "Savings" = transfers to savings, investments
+- "Income" = salary, refunds, deposits
+- "Savings" = transfers to savings/investments
 
-JSON response:"""
+JSON:"""
 
 
 class Categorizer:
     """LLM-powered transaction categorizer."""
 
-    def __init__(self, model: str = "gpt-4o-mini"):
-        self.model = model
+    def __init__(self, model: str = "qwen2.5-coder"):
+        # Support both Ollama and OpenAI models
+        if "/" not in model:
+            # Short model name - use litellm config mapping
+            self.model = f"ollama/{model}:3b" if "ollama" not in os.getenv("LITELLM_MODEL_PREFIX", "") else model
+        else:
+            self.model = model
+
+        # Check for Ollama availability
+        self.is_ollama = "ollama" in self.model.lower()
         self.categories = Category.all()
+        logger.info(f"Initialized categorizer with model: {self.model}, is_ollama: {self.is_ollama}")
 
     def _build_prompt(self, description: str, amount: Decimal) -> str:
         """Build categorization prompt."""
@@ -77,6 +87,16 @@ class Categorizer:
             )
 
             content = response.choices[0].message.content or "{}"
+
+            # Clean markdown code block wrappers if present
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
 
             # Parse JSON response
             result = json.loads(content)
