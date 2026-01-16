@@ -10,7 +10,7 @@ import litellm
 import pandas as pd
 from prophet import Prophet
 
-from .models import Transaction
+from .models import TransactionBase
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ JSON response:"""
 
 
 def prepare_prophet_data(
-    transactions: list[Transaction], category: str | None = None
+    transactions: list[TransactionBase], category: str | None = None
 ) -> pd.DataFrame:
     """
     Prepare transaction data for Prophet.
@@ -177,7 +177,7 @@ async def sanity_check_forecast(
 
 
 def calculate_history_summary(
-    transactions: list[Transaction], category: str | None = None
+    transactions: list[TransactionBase], category: str | None = None
 ) -> dict[str, Any]:
     """Calculate summary statistics for historical data."""
     if category:
@@ -222,9 +222,9 @@ async def generate_forecast(
     Returns:
         Complete forecast with LLM sanity check
     """
-    # Convert to Transaction objects
+    # Convert to TransactionBase objects
     txs = [
-        Transaction(
+        TransactionBase(
             date=t["date"],
             description=t["description"],
             amount=Decimal(str(t["amount"])),
