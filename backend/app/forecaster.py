@@ -2,17 +2,22 @@
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-import litellm
+from openai import AsyncOpenAI
 import pandas as pd
 from prophet import Prophet
 
 from .models import TransactionBase
 
 logger = logging.getLogger(__name__)
+
+# Ollama OpenAI-compatible endpoint
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OLLAMA_API_KEY = "ollama-api-key"
 
 
 # LLM sanity check prompt
@@ -145,9 +150,15 @@ async def sanity_check_forecast(
         date=forecast["forecast_date"],
     )
 
+    # Create OpenAI client for Ollama
+    client = AsyncOpenAI(
+        base_url=OLLAMA_BASE_URL,
+        api_key=OLLAMA_API_KEY,
+    )
+
     try:
-        response = await litellm.acompletion(
-            model="gpt-4o-mini",
+        response = await client.chat.completions.create(
+            model="qwen2.5-coder:3b",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=200,

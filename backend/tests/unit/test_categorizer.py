@@ -40,14 +40,15 @@ class TestCategorizer:
         """Test categorizer with Ollama model."""
         categorizer = Categorizer(model="qwen2.5-coder:3b")
 
-        assert "qwen2.5-coder" in categorizer.model
-        assert categorizer.is_ollama is True
+        assert "qwen2.5-coder:3b" in categorizer.model
+        assert categorizer.client is not None
 
     def test_categorizer_with_openai_model(self):
-        """Test categorizer with OpenAI model."""
+        """Test categorizer with custom model."""
         categorizer = Categorizer(model="gpt-4o-mini")
 
         assert "gpt-4o-mini" in categorizer.model
+        assert categorizer.client is not None
 
 
 @pytest.mark.asyncio
@@ -167,7 +168,7 @@ class TestCategorizerOllama:
             amount=Decimal("75000.00"),
         )
 
-        result = await categorizer(tx)
+        result = await categorizer.categorize(tx)
 
         assert result["category"] == "Income"
 
@@ -180,12 +181,12 @@ class TestCategorizerMocked:
         """Test categorization with mocked LLM response."""
         categorizer = Categorizer()
 
-        # Mock the litellm response
+        # Mock the OpenAI client response
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = '{"category": "Dining", "confidence": 0.95}'
 
-        with patch("app.categorizer.litellm.acompletion", new_callable=AsyncMock) as mock:
+        with patch.object(categorizer.client.chat.completions, "create", new_callable=AsyncMock) as mock:
             mock.return_value = mock_response
 
             tx = TransactionCreate(
@@ -209,7 +210,7 @@ class TestCategorizerMocked:
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Not a JSON response"
 
-        with patch("app.categorizer.litellm.acompletion", new_callable=AsyncMock) as mock:
+        with patch.object(categorizer.client.chat.completions, "create", new_callable=AsyncMock) as mock:
             mock.return_value = mock_response
 
             tx = TransactionCreate(
@@ -229,7 +230,7 @@ class TestCategorizerMocked:
         """Test categorization handles API errors gracefully."""
         categorizer = Categorizer()
 
-        with patch("app.categorizer.litellm.acompletion", new_callable=AsyncMock) as mock:
+        with patch.object(categorizer.client.chat.completions, "create", new_callable=AsyncMock) as mock:
             mock.side_effect = Exception("API error")
 
             tx = TransactionCreate(

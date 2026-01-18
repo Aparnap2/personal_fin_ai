@@ -6,12 +6,16 @@ import time
 from decimal import Decimal
 from typing import Any
 
-import litellm
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from .models import Category, TransactionCreate
 
 logger = logging.getLogger(__name__)
+
+# Ollama OpenAI-compatible endpoint
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OLLAMA_API_KEY = "ollama-api-key"
 
 # Categorization prompt template - optimized for Ollama qwen2.5-coder
 CATEGORIZE_PROMPT = """You are a financial transaction classifier. Classify this transaction into ONE category.
@@ -42,18 +46,17 @@ JSON:"""
 class Categorizer:
     """LLM-powered transaction categorizer."""
 
-    def __init__(self, model: str = "qwen2.5-coder"):
-        # Support both Ollama and OpenAI models
-        if "/" not in model:
-            # Short model name - use litellm config mapping
-            self.model = f"ollama/{model}:3b" if "ollama" not in os.getenv("LITELLM_MODEL_PREFIX", "") else model
-        else:
-            self.model = model
-
-        # Check for Ollama availability
-        self.is_ollama = "ollama" in self.model.lower()
+    def __init__(self, model: str = "qwen2.5-coder:3b"):
+        self.model = model
         self.categories = Category.all()
-        logger.info(f"Initialized categorizer with model: {self.model}, is_ollama: {self.is_ollama}")
+
+        # Use OpenAI SDK with Ollama's OpenAI-compatible API
+        self.client = AsyncOpenAI(
+            base_url=OLLAMA_BASE_URL,
+            api_key=OLLAMA_API_KEY,
+        )
+
+        logger.info(f"Initialized categorizer with model: {self.model}")
 
     def _build_prompt(self, description: str, amount: Decimal) -> str:
         """Build categorization prompt."""
@@ -79,7 +82,7 @@ class Categorizer:
         )
 
         try:
-            response = await litellm.acompletion(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
